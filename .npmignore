@@ -107,3 +107,5 @@ typings/
 .mocharc.js
 .travis.yml
 tsconfig.json
+.eslintignore
+.eslintrc.js

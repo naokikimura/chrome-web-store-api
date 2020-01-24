@@ -12,20 +12,20 @@ function createRequest(url: string | URL, options: RequestOptions): ClientReques
   return require(url.protocol.replace(/:$/, '')).request(url, Object.assign({ agent }, options));
 }
 
-function fetch(request: ClientRequest) {
+function fetch(request: ClientRequest): Promise<IncomingMessage> {
   debug(`${request.method} ${request.path} HTTP/1.1`);
   return new Promise<IncomingMessage>((resolve, reject) => {
     request.on('response', resolve).on('error', reject).end();
   });
 }
 
-function toJSON<T>(response: IncomingMessage) {
+function toJSON<T>(response: IncomingMessage): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const data: any[] = [];
+    const data: Array<Buffer | string> = [];
     response
-      .on('data', chunk => { data.push(chunk); })
+      .on('data', (chunk: Buffer | string) => { data.push(chunk); })
       .on('end', () => {
-        const body = data.reduce((text, chunk) => text + chunk.toString());
+        const body = data.join('');
         try {
           debug(body);
           resolve(JSON.parse(body) as T);
@@ -37,7 +37,7 @@ function toJSON<T>(response: IncomingMessage) {
   });
 }
 
-function isSuccessful(response: IncomingMessage) {
+function isSuccessful(response: IncomingMessage): boolean {
   return response.statusCode !== undefined && response.statusCode >= 200 && response.statusCode <= 299;
 }
 
@@ -45,7 +45,7 @@ type ResponseConditionFunction = (response: IncomingMessage) => boolean;
 type ResponseParseFunction<T> = (response: IncomingMessage) => Promise<T>;
 
 function ResponseParser<T>(condition: ResponseConditionFunction, parse: ResponseParseFunction<T>) {
-  return function parseResponse(response: IncomingMessage) {
+  return function parseResponse(response: IncomingMessage): Promise<T> {
     debug(`HTTP/${response.httpVersion} ${response.statusCode} ${response.statusMessage}`);
     if (!condition(response)) {
       throw new class extends Error {
@@ -148,7 +148,7 @@ export default class ChromeWebStoreAPI {
     this.accessTokenResponse = accessTokenResponse;
   }
 
-  private async refreshToken() {
+  private async refreshToken(): Promise<AccessTokenResponse> {
     const url = new URL(this.credential.installed.token_uri);
     const request = createRequest(url, {
       headers: {
@@ -157,10 +157,10 @@ export default class ChromeWebStoreAPI {
       method: 'POST',
     });
     request.write(querystring.stringify({
-      client_id: this.credential.installed.client_id,
-      client_secret: this.credential.installed.client_secret,
-      grant_type: 'refresh_token',
-      refresh_token: this.accessTokenResponse.refresh_token,
+      'client_id': this.credential.installed.client_id,
+      'client_secret': this.credential.installed.client_secret,
+      'grant_type': 'refresh_token',
+      'refresh_token': this.accessTokenResponse.refresh_token,
     }));
     return Object.assign(
       this.accessTokenResponse,
@@ -168,7 +168,9 @@ export default class ChromeWebStoreAPI {
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   get Item() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const that = this;
 
     /**
@@ -178,13 +180,13 @@ export default class ChromeWebStoreAPI {
      * @param projection Determines which subset of the item information to return.
      * @see https://developer.chrome.com/webstore/webstore_api/items/get
      */
-    async function fetchItem(id: string, projection: 'DRAFT' | 'PUBLISHED' = 'DRAFT') {
-      const { access_token } = await that.refreshToken();
+    async function fetchItem(id: string, projection: 'DRAFT' | 'PUBLISHED' = 'DRAFT'): Promise<ItemLake> {
+      const { access_token: token } = await that.refreshToken();
       const url = new URL(id, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
       url.searchParams.set('projection', projection);
       const request = createRequest(url, {
         headers: {
-          'Authorization': `Bearer ${access_token}`,
+          'Authorization': `Bearer ${token}`,
           'x-goog-api-version': 2,
         },
         method: 'GET',
@@ -198,11 +200,11 @@ export default class ChromeWebStoreAPI {
     }
 
     return class ItemImpl extends Item {
-      public static valueOf({ id, publicKey, uploadState, crxVersion, itemError }: ItemLake) {
+      public static valueOf({ id, publicKey, uploadState, crxVersion, itemError }: ItemLake): ItemImpl {
         return new this(id, publicKey, uploadState, crxVersion, itemError);
       }
 
-      public static async fetch(id: string) {
+      public static async fetch(id: string): Promise<ItemImpl> {
         return this.valueOf(await fetchItem(id));
       }
 
@@ -213,15 +215,15 @@ export default class ChromeWebStoreAPI {
        * @param publisherEmail The email of the publisher who owns the items.
        * @see https://developer.chrome.com/webstore/webstore_api/items/insert
        */
-      public static async insert(uploadType: UploadType = 'media', publisherEmail?: string) {
-        const { access_token } = await that.refreshToken();
+      public static async insert(uploadType: UploadType = 'media', publisherEmail?: string): Promise<ItemLake> {
+        const { access_token: token } = await that.refreshToken();
         const url = new URL('https://www.googleapis.com/upload/chromewebstore/v1.1/items');
         url.searchParams.set('uploadType', uploadType);
         if (publisherEmail) url.searchParams.set('publisherEmail', publisherEmail);
 
         const request = createRequest(url, {
           headers: {
-            'Authorization': `Bearer ${access_token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Length': 0,
             'x-goog-api-version': 2,
           },
@@ -230,13 +232,13 @@ export default class ChromeWebStoreAPI {
         return fetch(request).then(ResponseParser<ItemLake>(isSuccessful, toJSON));
       }
 
-      public async upload(contents: Contents, uploadType: UploadType = '') {
-        const { access_token } = await that.refreshToken();
+      public async upload(contents: Contents, uploadType: UploadType = ''): Promise<ItemLake> {
+        const { access_token: token } = await that.refreshToken();
         const url = new URL(this.id, 'https://www.googleapis.com/upload/chromewebstore/v1.1/items/');
         url.searchParams.set('uploadType', uploadType);
         const request = createRequest(url, {
           headers: {
-            'Authorization': `Bearer ${access_token}`,
+            'Authorization': `Bearer ${token}`,
             'x-goog-api-version': 2,
           },
           method: 'PUT',
@@ -249,13 +251,13 @@ export default class ChromeWebStoreAPI {
         return fetch(request).then(ResponseParser<ItemLake>(isSuccessful, toJSON));
       }
 
-      public async publish(publishTarget: PublishTarget = 'default') {
-        const { access_token } = await that.refreshToken();
+      public async publish(publishTarget: PublishTarget = 'default'): Promise<PublishItemResult> {
+        const { access_token: token } = await that.refreshToken();
         const url = new URL(`${this.id}/publish`, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
         url.searchParams.set('publishTarget', publishTarget);
         const request = createRequest(url, {
           headers: {
-            'Authorization': `Bearer ${access_token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Length': 0,
             'x-goog-api-version': 2,
           },
