@@ -1,0 +1,13 @@
+language: node_js
+node_js:
+- stable
+- '6'
+- '4'
+deploy:
+  provider: npm
+  email: n.kimura.cap@gmail.com
+  api_key:
+    secure: D3q0ms79e23zhltsxWNXAPJHt/ukysUzMKTR0LyKLRcLo7zUNhN4BggXY24OVk7pgwftfcxBbqYg3dFpUFPqCEDd8Wsv7aUjQflUgjfIVWukjvcFR3gFIPWfcVNfaiicPvKJojNKce0pq8/skZbVeKVSgJUxZB+uPUsYfRITP1wPqGvANOdamfbzl87vjL+bLY6sk2cl2cY3Yh9SL1hStiE4v5H7Z1/Wd5HL+haNdQwlM+EZgfLg32jhJX0xsRsA3GvkXYuZv+qCr6y8JJZPQ/GkC/BhrsEuk5nFKGCx3QWSMjQExgtzYbMBB9nRPPBzmPbCC616dWDM4ZjqjokLFhOD563lh5Dso0M6s4wjE7Dm+6D/TaxY7wlEpihisGUavnkvFpQiTv9k8B54gL6z366IsBvoliw6dtJmMRKvk46JtH0nrPdKkupO+iRXhfUBmxHRAIJ5gTiwUhuIDLSX/dKZRE2387ygdGqDrSz+aZ7Z89SlTUESvPykIbTpwXcq3kibH8iyjZO3BL4WFlDGTJStfF5loY274VMyeEvjHkhJVyv03XsFJ6d7pmIHr/2DIn3Tu5yeovQFb6bNahDdq6ZkdbczOYXl2wjVCKYXYMarD5t9+jUIJfAOoEn6g98IzUFxjLuJ1xrSq+oN7o2PerU5ThzRsxMy0z6aYPgQ7zY=
+  on:
+    tags: true
+    repo: naokikimura/chrome-web-store-api
