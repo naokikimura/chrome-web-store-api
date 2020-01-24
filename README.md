@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/chrome-web-store-api.svg)](https://badge.fury.io/js/chrome-web-store-api) [![Build Status](https://travis-ci.org/naokikimura/chrome-web-store-api.svg?branch=master)](https://travis-ci.org/naokikimura/chrome-web-store-api) [![Known Vulnerabilities](https://snyk.io/test/github/naokikimura/chrome-web-store-api/badge.svg?targetFile=package.json)](https://snyk.io/test/github/naokikimura/chrome-web-store-api?targetFile=package.json)
 
-Chrome Web Store API client for Node.js
+[Chrome Web Store API](https://developer.chrome.com/webstore/api_index) client for Node.js
 
 ## Installation
 
