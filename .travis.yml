@@ -1,8 +1,6 @@
 language: node_js
 node_js:
 - stable
-- '6'
-- '4'
 deploy:
   provider: npm
   email: n.kimura.cap@gmail.com
