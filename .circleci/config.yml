@@ -1,0 +1,118 @@
+# Javascript Node CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+#
+version: 2.1
+
+executors:
+  default:
+    docker:
+    # specify the version you desire here
+    - image: circleci/node:lts
+
+    # Specify service dependencies here if necessary
+    # CircleCI maintains a library of pre-built images
+    # documented at https://circleci.com/docs/2.0/circleci-images/
+    # - image: circleci/mongo:3.4.4
+
+    working_directory: ~/repo
+
+commands:
+  restore_node_modules:
+    steps:
+    # Download and cache dependencies
+    - restore_cache:
+        keys:
+        - v1-dependencies-{{ checksum "package.json" }}
+        # fallback to using the latest cache if no exact match is found
+        - v1-dependencies-
+
+jobs:
+  setup:
+    executor:
+      name: default
+
+    steps:
+    - checkout
+    - restore_node_modules
+    - run: npm install
+
+    - save_cache:
+        paths:
+        - node_modules
+        key: v1-dependencies-{{ checksum "package.json" }}
+
+  lint:
+    executor:
+      name: default
+
+    steps:
+    - checkout
+    - restore_node_modules
+
+    - run: npm run lint -- -f junit -o ./reports/eslint/test-results.xml
+
+    - store_test_results:
+        path: ./reports
+
+  test:
+    executor:
+      name: default
+
+    steps:
+    - checkout
+    - restore_node_modules
+
+    # run tests!
+    - run: npm test -- -R xunit -O output=./reports/mocha/test-results.xml
+
+    - store_test_results:
+        path: ./reports
+
+  publish:
+    executor:
+      name: default
+
+    steps:
+      - checkout
+      - restore_node_modules
+
+      - deploy:
+          command: |
+              echo "//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}" >> "${CIRCLE_WORKING_DIRECTORY}/.npmrc"
+              npm publish
+
+workflows:
+  setup-test-publish:
+    jobs:
+    - setup:
+        filters:
+          tags:
+            only: /.*/
+          branches:
+            only: /.*/
+    - test:
+        filters:
+          tags:
+            only: /.*/
+          branches:
+            only: /.*/
+        requires:
+        - setup
+    - lint:
+        filters:
+          tags:
+            only: /.*/
+          branches:
+            only: /.*/
+        requires:
+        - setup
+    - publish:
+        type: approval
+        filters:
+          tags:
+            only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+          branches:
+            only: master
+        requires:
+        - test

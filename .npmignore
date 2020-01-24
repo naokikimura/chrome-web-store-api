@@ -109,3 +109,5 @@ typings/
 tsconfig.json
 .eslintignore
 .eslintrc.js
+.circleci/
+reports/
