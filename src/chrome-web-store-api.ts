@@ -27,6 +27,7 @@ function toJSON<T>(response: IncomingMessage) {
       .on('end', () => {
         const body = data.reduce((text, chunk) => text + chunk.toString());
         try {
+          debug(body);
           resolve(JSON.parse(body) as T);
         } catch (error) {
           reject(error);
@@ -203,6 +204,30 @@ export default class ChromeWebStoreAPI {
 
       public static async fetch(id: string) {
         return this.valueOf(await fetchItem(id));
+      }
+
+      /**
+       * This method supports an upload URI and accepts uploaded media.
+       *
+       * @param uploadType The type of upload request to the `/upload URI.
+       * @param publisherEmail The email of the publisher who owns the items.
+       * @see https://developer.chrome.com/webstore/webstore_api/items/insert
+       */
+      public static async insert(uploadType: UploadType = 'media', publisherEmail?: string) {
+        const { access_token } = await that.refreshToken();
+        const url = new URL('https://www.googleapis.com/upload/chromewebstore/v1.1/items');
+        url.searchParams.set('uploadType', uploadType);
+        if (publisherEmail) url.searchParams.set('publisherEmail', publisherEmail);
+
+        const request = createRequest(url, {
+          headers: {
+            'Authorization': `Bearer ${access_token}`,
+            'Content-Length': 0,
+            'x-goog-api-version': 2,
+          },
+          method: 'POST',
+        });
+        return fetch(request).then(ResponseParser<ItemLake>(isSuccessful, toJSON));
       }
 
       public async upload(contents: Contents, uploadType: UploadType = '') {
