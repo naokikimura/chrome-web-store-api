@@ -6,6 +6,7 @@ import util from 'util';
 import ChromeWebStore from './chrome-web-store';
 import Item from './item';
 import InAppProduct from './in-app-product';
+import License from './license';
 
 const debug = util.debuglog('chrome-web-store-api');
 const agent = undefined;
@@ -130,6 +131,16 @@ export interface PublishItemResult {
   item_id: string;
   status: string[];
   statusDetail: string[];
+}
+
+export interface LicenseLike {
+  kind: 'chromewebstore#license';
+  id: string;
+  appId: string;
+  userId: string;
+  result?: 'NO' | 'YES';
+  accessLevel?: 'FREE_TRIAL' | 'FULL';
+  maxAgeSecs?: number;
 }
 
 /**
@@ -313,3 +324,24 @@ export async function fetchInAppProduct(this: InAppProduct, gl?: string, hl?: st
   return fetch(request)
     .then(ResponseParser<InAppProductLike>(isSuccessful, toJSON));
 }
+
+/**
+ * Gets the licenses for Chrome hosted apps.
+ * 
+ * @param this License
+ * @see https://developer.chrome.com/webstore/webstore_api/licenses/get
+ */
+export async function fetchLicense(this: License): Promise<LicenseLike> {
+  const { access_token: token } = await refreshToken.call(this.chromeWebStore);
+  const url = new URL(this.id, 'https://www.googleapis.com/chromewebstore/v1.1/licenses/');
+  const request = createRequest(url, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'x-goog-api-version': 2,
+    },
+    method: 'GET',
+  });
+  return fetch(request)
+    .then(ResponseParser<LicenseLike>(isSuccessful, toJSON));
+}
+
