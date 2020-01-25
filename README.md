@@ -55,34 +55,38 @@ EOF
 For example:
 
 ```js
-const ChromeWebStoreAPI = require('chrome-web-store-api');
+const ChromeWebStore = require('chrome-web-store-api');
 const fs = require('fs');
 
-const chromeWebStoreAPI = new ChromeWebStoreAPI(
-    JSON.parse(process.env.CHROME_WEB_STORE_API_CREDENTIAL || ''),
-    JSON.parse(process.env.CHROME_WEB_STORE_API_ACCESS_TOKEN_RESPONSE || ''),
+const chromeWebStore = new ChromeWebStore(
+  JSON.parse(process.env.CHROME_WEB_STORE_API_CREDENTIAL || ''),
+  JSON.parse(process.env.CHROME_WEB_STORE_API_ACCESS_TOKEN_RESPONSE || ''),
 );
 const itemId = 'ID of your Chrome extension';
-chromeWebStoreAPI.Item.fetch(itemId)
-    .then(item => {
-        const readStream = fs.createReadStream('your-chrome-extension.zip');
-        return item.upload(readStream);
-    })
-    .then(result => {
-        if (result.uploadState === 'FAILURE') {
-            const message = (result.itemError || []).map(error => error.error_detail).join('\n');
-            throw new Error(message);
-        }
-        console.log('Upload succeeded.');
-        return chromeWebStoreAPI.Item.valuOf(result);
-    })
-    .then(item => {
-        return item.publish();
-    })
-    .then(result => {
-        (result.statusDetail || []).forEach(detail => console.log(detail));
-    })
-    .catch(console.error);
+const packageFile = 'your-chrome-extension.zip';
+
+(async () => {
+  try {
+    const item = await (new chromeWebStore.Item(itemId)).fetch();
+
+    {
+      const readStream = fs.createReadStream(packageFile);
+      const result = await item.upload(readStream);
+      if (result.uploadState === 'FAILURE') {
+        const message = (result.itemError || []).map(error => error.error_detail).join('\n');
+        throw new Error(message);
+      }
+      console.log('Upload succeeded.');
+    }
+
+    {
+      const result = await item.publish();
+      (result.statusDetail || []).forEach(detail => console.log(detail));
+    }
+  } catch (error) {
+    console.error(error);
+  }
+})();
 ```
 
 ## Contributing
