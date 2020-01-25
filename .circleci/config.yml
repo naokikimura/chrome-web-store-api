@@ -107,7 +107,7 @@ workflows:
             only: /.*/
         requires:
         - setup
-    - publish:
+    - hold:
         type: approval
         filters:
           tags:
@@ -116,3 +116,6 @@ workflows:
             only: master
         requires:
         - test
+    - publish:
+        requires:
+        - hold
