@@ -145,7 +145,7 @@ export interface LicenseLike {
 
 /**
  * 
- * @param this 
+ * @param this ChromeWebStore
  */
 async function refreshToken(this: ChromeWebStore): Promise<AccessTokenResponse> {
   const url = new URL(this.credential.installed.token_uri);
@@ -170,7 +170,7 @@ async function refreshToken(this: ChromeWebStore): Promise<AccessTokenResponse> 
 /**
  * Gets a Chrome Web Store item.
  *
- * @param this 
+ * @param this Item
  * @param id Unique identifier representing the Chrome App, Chrome Extension, or the Chrome Theme.
  * @param projection Determines which subset of the item information to return.
  * @see https://developer.chrome.com/webstore/webstore_api/items/get
@@ -197,7 +197,7 @@ export async function fetchItem(this: Item, projection: 'DRAFT' | 'PUBLISHED' = 
 /**
  * This method supports an upload URI and accepts uploaded media.
  *
- * @param this 
+ * @param this Item
  * @param uploadType The type of upload request to the `/upload URI.
  * @param publisherEmail The email of the publisher who owns the items.
  * @see https://developer.chrome.com/webstore/webstore_api/items/insert
@@ -222,7 +222,7 @@ export async function insertItem(this: Item, uploadType: UploadType = 'media', p
 /**
  * Updates an existing item.
  *
- * @param this 
+ * @param this Item
  * @param contents Item
  * @param uploadType The type of upload request to the /upload URI
  * @see https://developer.chrome.com/webstore/webstore_api/items/update
@@ -250,7 +250,7 @@ export async function uploadItem(this: Item, contents: Contents, uploadType: Upl
 /**
  * Publishes an item.
  *
- * @param this 
+ * @param this Item
  * @param publishTarget Provide defined publishTarget in URL: `trustedTesters` or `default`
  * @see https://developer.chrome.com/webstore/webstore_api/items/publish
  */
@@ -272,15 +272,16 @@ export async function publishItem(this: Item, publishTarget: PublishTarget = 'de
 /**
  * Lists the in-app product information of an item.
  *
- * @param this item
+ * @param this ChromeWebStore
+ * @param itemId The ID of the item to query for in-app products.
  * @param gl Specifies the region code of the in-app product when `projection` is `THIN`.
  * @param hl Specifies the language code of the in-app product when `projection` is `THIN`.
  * @param projection Whether to return a subset of the result.
  * @see https://developer.chrome.com/webstore/webstore_api/inAppProducts/list
  */
-export async function fetchInAppProducts(this: Item, gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductList> {
-  const { access_token: token } = await refreshToken.call(this.chromeWebStore);
-  const url = new URL(`${this.id}/skus`, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
+export async function fetchInAppProducts(this: ChromeWebStore, itemId: string, gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductList> {
+  const { access_token: token } = await refreshToken.call(this);
+  const url = new URL(`${itemId}/skus`, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
   if (gl) url.searchParams.set('gl', gl);
   if (hl) url.searchParams.set('hl', hl);
   if (projection) url.searchParams.set('projection', projection);
@@ -302,14 +303,14 @@ export async function fetchInAppProducts(this: Item, gl?: string, hl?: string, p
 /**
  * Gets an in-app product.
  *
- * @param this item
+ * @param this InAppProduct
  * @param gl Specifies the region code of the in-app product when `projection` is `THIN`.
  * @param hl Specifies the language code of the in-app product when `projection` is `THIN`.
  * @param projection Whether to return a subset of the result.
  * @see https://developer.chrome.com/webstore/webstore_api/inAppProducts/get
  */
 export async function fetchInAppProduct(this: InAppProduct, gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductLike> {
-  const { access_token: token } = await refreshToken.call(this.item.chromeWebStore);
+  const { access_token: token } = await refreshToken.call(this.chromeWebStore);
   const url = new URL(`${this.item_id}/skus/${this.sku}`, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
   if (gl) url.searchParams.set('gl', gl);
   if (hl) url.searchParams.set('hl', hl);
@@ -344,4 +345,3 @@ export async function fetchLicense(this: License): Promise<LicenseLike> {
   return fetch(request)
     .then(ResponseParser<LicenseLike>(isSuccessful, toJSON));
 }
-

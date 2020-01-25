@@ -1,6 +1,5 @@
 import ChromeWebStore from './chrome-web-store';
 import { ItemLike, ItemError, fetchItem, UploadType, insertItem, Contents, uploadItem, PublishTarget, PublishItemResult, publishItem, InAppProductList } from './chrome-web-store-api';
-import InAppProduct from "./in-app-product";
 
 export default class Item implements ItemLike {
   public static new = (chromeWebStore: ChromeWebStore, { id, publicKey, uploadState, crxVersion, itemError }: ItemLike): Item => new Item(chromeWebStore, id, publicKey, uploadState, crxVersion, itemError);
@@ -27,31 +26,4 @@ export default class Item implements ItemLike {
   }
 
   public new = (itemLike: ItemLike): Item => Item.new(this.chromeWebStore, itemLike);
-
-  public fetchInAppProducts(gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductList> {
-    return InAppProduct.list(this, gl, hl, projection);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  get InAppProduct() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const item = this;
-    return class extends InAppProduct {
-      constructor(sku: string,
-        type?: 'inapp' | 'subs',
-        state?: 'ACTIVE' | 'INACTIVE',
-        localeData?: {
-          description: string;
-          languageCode: string;
-          title: string;
-        }[],
-        prices?: {
-          currencyCode: string;
-          regionCode: string;
-          valueMicros: number;
-        }[]) {
-        super(item, sku, type, state, localeData, prices);
-      }
-    };
-  }
 }

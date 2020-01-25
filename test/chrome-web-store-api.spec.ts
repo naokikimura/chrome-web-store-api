@@ -1,9 +1,10 @@
 import { expect } from 'chai';
 import ChromeWebStore from '../src/chrome-web-store';
+import InAppProduct from '../src/in-app-product';
 
 describe('ChromeWebStoreAPI', () => {
 	before(async function () {
-		this.chromeWebStoreAPI = new ChromeWebStore(
+		this.chromeWebStore = new ChromeWebStore(
 			JSON.parse(process.env.CHROME_WEB_STORE_API_CREDENTIAL || ''),
 			JSON.parse(process.env.CHROME_WEB_STORE_API_ACCESS_TOKEN_RESPONSE || ''),
 		);
@@ -11,22 +12,20 @@ describe('ChromeWebStoreAPI', () => {
 
   describe('Item', () => {
 		it('should return Item Resource', async function() {
-			const chromeWebStoreAPI = this.chromeWebStoreAPI as ChromeWebStore;
+			const chromeWebStore = this.chromeWebStore as ChromeWebStore;
 			const itemId = 'pgpnkghddnfoopjapnlklllpjknnibkn';
-			const item = await (new chromeWebStoreAPI.Item(itemId)).fetch();
+			const item = await (new chromeWebStore.Item(itemId)).fetch();
 			expect(item).to.have.property('id', itemId);
 		});
 	});
 
 	describe.skip('InAppProduct', () => {
     it('should return InAppProduct Resource', async function() {
-			const chromeWebStoreAPI = this.chromeWebStoreAPI as ChromeWebStore;
-      const itemId = 'pgpnkghddnfoopjapnlklllpjknnibkn';
-      const item = new chromeWebStoreAPI.Item(itemId);
-      const sku = '';
-      const inAppProduct = await (new item.InAppProduct(sku)).fetch();
-      expect(inAppProduct).to.have.property('item', item);
-      expect(inAppProduct).to.have.property('sku', sku);
+			const chromeWebStore = this.chromeWebStore as ChromeWebStore;
+      const itemId = ''; // TODO:
+      const sku = ''; // TODO:
+      const inAppProduct = await (new InAppProduct(chromeWebStore, itemId, sku)).fetch();
+      expect(inAppProduct).to.have.property('state');
     });
   });
 });
