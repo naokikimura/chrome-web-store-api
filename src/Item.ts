@@ -1,6 +1,6 @@
 import ChromeWebStore from './chrome-web-store';
 import { ItemLike, ItemError, fetchItem, UploadType, insertItem, Contents, uploadItem, PublishTarget, PublishItemResult, publishItem, InAppProductList } from './chrome-web-store-api';
-import InAppProduct from "./InAppProduct";
+import InAppProduct from "./in-app-product";
 
 export default class Item implements ItemLike {
   public static new = (chromeWebStore: ChromeWebStore, { id, publicKey, uploadState, crxVersion, itemError }: ItemLike): Item => new Item(chromeWebStore, id, publicKey, uploadState, crxVersion, itemError);

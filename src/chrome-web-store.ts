@@ -1,5 +1,5 @@
 import { Credential, AccessTokenResponse, ItemError } from './chrome-web-store-api';
-import Item from "./Item";
+import Item from "./item";
 
 /**
  * Chrome Web Store API

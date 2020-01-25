@@ -1,4 +1,4 @@
-import Item from './Item';
+import Item from './item';
 import { InAppProductLike, InAppProductList, fetchInAppProducts, fetchInAppProduct } from './chrome-web-store-api';
 
 export default class InAppProduct implements InAppProductLike {

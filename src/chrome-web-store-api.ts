@@ -4,8 +4,8 @@ import stream from 'stream';
 import { URL } from 'url';
 import util from 'util';
 import ChromeWebStore from './chrome-web-store';
-import Item from './Item';
-import InAppProduct from './InAppProduct';
+import Item from './item';
+import InAppProduct from './in-app-product';
 
 const debug = util.debuglog('chrome-web-store-api');
 const agent = undefined;
