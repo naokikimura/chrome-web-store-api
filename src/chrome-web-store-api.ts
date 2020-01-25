@@ -3,6 +3,9 @@ import querystring from 'querystring';
 import stream from 'stream';
 import { URL } from 'url';
 import util from 'util';
+import ChromeWebStore from './chrome-web-store';
+import Item from './Item';
+import InAppProduct from './InAppProduct';
 
 const debug = util.debuglog('chrome-web-store-api');
 const agent = undefined;
@@ -133,7 +136,7 @@ export interface PublishItemResult {
  * 
  * @param this 
  */
-async function refreshToken(this: ChromeWebStoreAPI): Promise<AccessTokenResponse> {
+async function refreshToken(this: ChromeWebStore): Promise<AccessTokenResponse> {
   const url = new URL(this.credential.installed.token_uri);
   const request = createRequest(url, {
     headers: {
@@ -161,7 +164,7 @@ async function refreshToken(this: ChromeWebStoreAPI): Promise<AccessTokenRespons
  * @param projection Determines which subset of the item information to return.
  * @see https://developer.chrome.com/webstore/webstore_api/items/get
  */
-async function fetchItem(this: Item, projection: 'DRAFT' | 'PUBLISHED' = 'DRAFT'): Promise<ItemLike> {
+export async function fetchItem(this: Item, projection: 'DRAFT' | 'PUBLISHED' = 'DRAFT'): Promise<ItemLike> {
   const { access_token: token } = await refreshToken.call(this.chromeWebStore);
   const url = new URL(this.id, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
   url.searchParams.set('projection', projection);
@@ -188,7 +191,7 @@ async function fetchItem(this: Item, projection: 'DRAFT' | 'PUBLISHED' = 'DRAFT'
  * @param publisherEmail The email of the publisher who owns the items.
  * @see https://developer.chrome.com/webstore/webstore_api/items/insert
  */
-async function insertItem(this: Item, uploadType: UploadType = 'media', publisherEmail?: string): Promise<ItemLike> {
+export async function insertItem(this: Item, uploadType: UploadType = 'media', publisherEmail?: string): Promise<ItemLike> {
   const { access_token: token } = await refreshToken.call(this.chromeWebStore);
   const url = new URL('https://www.googleapis.com/upload/chromewebstore/v1.1/items');
   url.searchParams.set('uploadType', uploadType);
@@ -213,7 +216,7 @@ async function insertItem(this: Item, uploadType: UploadType = 'media', publishe
  * @param uploadType The type of upload request to the /upload URI
  * @see https://developer.chrome.com/webstore/webstore_api/items/update
  */
-async function uploadItem(this: Item, contents: Contents, uploadType: UploadType = ''): Promise<ItemLike> {
+export async function uploadItem(this: Item, contents: Contents, uploadType: UploadType = ''): Promise<ItemLike> {
   const { access_token: token } = await refreshToken.call(this.chromeWebStore);
   const url = new URL(this.id, 'https://www.googleapis.com/upload/chromewebstore/v1.1/items/');
   url.searchParams.set('uploadType', uploadType);
@@ -240,7 +243,7 @@ async function uploadItem(this: Item, contents: Contents, uploadType: UploadType
  * @param publishTarget Provide defined publishTarget in URL: `trustedTesters` or `default`
  * @see https://developer.chrome.com/webstore/webstore_api/items/publish
  */
-async function publishItem(this: Item, publishTarget: PublishTarget = 'default'): Promise<PublishItemResult> {
+export async function publishItem(this: Item, publishTarget: PublishTarget = 'default'): Promise<PublishItemResult> {
   const { access_token: token } = await refreshToken.call(this.chromeWebStore);
   const url = new URL(`${this.id}/publish`, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
   url.searchParams.set('publishTarget', publishTarget);
@@ -264,7 +267,7 @@ async function publishItem(this: Item, publishTarget: PublishTarget = 'default')
  * @param projection Whether to return a subset of the result.
  * @see https://developer.chrome.com/webstore/webstore_api/inAppProducts/list
  */
-async function fetchInAppProducts(this: Item, gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductList> {
+export async function fetchInAppProducts(this: Item, gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductList> {
   const { access_token: token } = await refreshToken.call(this.chromeWebStore);
   const url = new URL(`${this.id}/skus`, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
   if (gl) url.searchParams.set('gl', gl);
@@ -294,7 +297,7 @@ async function fetchInAppProducts(this: Item, gl?: string, hl?: string, projecti
  * @param projection Whether to return a subset of the result.
  * @see https://developer.chrome.com/webstore/webstore_api/inAppProducts/get
  */
-async function fetchInAppProduct(this: InAppProduct, gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductLike> {
+export async function fetchInAppProduct(this: InAppProduct, gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductLike> {
   const { access_token: token } = await refreshToken.call(this.item.chromeWebStore);
   const url = new URL(`${this.item_id}/skus/${this.sku}`, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
   if (gl) url.searchParams.set('gl', gl);
@@ -309,118 +312,4 @@ async function fetchInAppProduct(this: InAppProduct, gl?: string, hl?: string, p
   });
   return fetch(request)
     .then(ResponseParser<InAppProductLike>(isSuccessful, toJSON));
-}
-
-export class InAppProduct implements InAppProductLike {
-  public static new(item: Item, inAppProduct: InAppProductLike): InAppProduct {
-    return new InAppProduct(item, inAppProduct.sku, inAppProduct.type, inAppProduct.state, inAppProduct.localeData, inAppProduct.prices);
-  }
-
-  public static list(item: Item, gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductList> {
-    return fetchInAppProducts.call(item, gl, hl, projection)
-      .then(list => {
-        return {
-          kind: list.kind,
-          inAppProducts: list.inAppProducts.map(inAppProduct => InAppProduct.new(item, inAppProduct)),
-        };
-      });
-  }
-
-  public readonly kind = 'chromewebstore#inAppProduct';
-  public readonly item_id: string;
-
-  constructor(
-    public readonly item: Item,
-    public readonly sku: string,
-    public readonly type?: 'inapp' | 'subs',
-    public readonly state?: 'ACTIVE' | 'INACTIVE',
-    public readonly localeData?: { description: string; languageCode: string; title: string }[],
-    public readonly prices?: { currencyCode: string; regionCode: string; valueMicros: number }[],
-  ) {
-    // eslint-disable-next-line @typescript-eslint/camelcase
-    this.item_id = item.id;
-  }
-
-  public async fetch(gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProduct> {
-    return fetchInAppProduct.call(this, gl, hl, projection).then(this.new);
-  }
-
-  public new = (inAppProduct: InAppProductLike): InAppProduct => InAppProduct.new(this.item, inAppProduct);
-}
-
-export class Item implements ItemLike {
-  public static new = (chromeWebStore: ChromeWebStoreAPI, { id, publicKey, uploadState, crxVersion, itemError }: ItemLike): Item =>
-    new Item(chromeWebStore, id, publicKey, uploadState, crxVersion, itemError);
-
-  public readonly kind = "chromewebstore#item";
-
-  constructor(
-    public readonly chromeWebStore: ChromeWebStoreAPI,
-    public readonly id: string,
-    public readonly publicKey?: string,
-    public readonly uploadState?: string,
-    public readonly crxVersion?: string,
-    public readonly itemError?: ItemError[],
-  ) {
-  }
-
-  public fetch(projection: 'DRAFT' | 'PUBLISHED' = 'DRAFT'): Promise<Item> {
-    return fetchItem.call(this, projection).then(this.new);
-  }
-
-  public insert(uploadType: UploadType = 'media', publisherEmail?: string): Promise<Item> {
-    return insertItem.call(this, uploadType, publisherEmail).then(this.new);
-  }
-
-  public upload(contents: Contents, uploadType?: UploadType): Promise<Item> {
-    return uploadItem.call(this, contents, uploadType).then(this.new);
-  }
-
-  public publish(publishTarget?: PublishTarget): Promise<PublishItemResult> {
-    return publishItem.call(this, publishTarget);
-  }
-
-  public new = (itemLike: ItemLike): Item => Item.new(this.chromeWebStore, itemLike);
-
-  public fetchInAppProducts(gl?: string, hl?: string, projection?: 'ALL' | 'THIN'): Promise<InAppProductList> {
-    return InAppProduct.list(this, gl, hl, projection);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  get InAppProduct() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const item = this;
-    return class extends InAppProduct {
-      constructor(
-        sku: string,
-        type?: 'inapp' | 'subs',
-        state?: 'ACTIVE' | 'INACTIVE',
-        localeData?: { description: string; languageCode: string; title: string }[],
-        prices?: { currencyCode: string; regionCode: string; valueMicros: number }[],
-      ) {
-        super(item, sku, type, state, localeData, prices);
-      }
-    }
-  }
-}
-
-/**
- * Chrome Web Store API
- * 
- * @see https://developer.chrome.com/webstore/api_index
- */
-export default class ChromeWebStoreAPI {
-  constructor(protected credential: Credential, protected accessTokenResponse: AccessTokenResponse) {
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  get Item() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const chromeWebStore = this;
-    return class extends Item {
-      constructor(id: string, publicKey?: string, uploadState?: string, crxVersion?: string, itemError?: ItemError[]) {
-        super(chromeWebStore, id, publicKey, uploadState, crxVersion, itemError);
-      }
-    };
-  }
 }
