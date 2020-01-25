@@ -2,19 +2,31 @@ import { expect } from 'chai';
 import ChromeWebStoreAPI from '../src/chrome-web-store-api';
 
 describe('ChromeWebStoreAPI', () => {
-	describe('Item', () => {
-		before(async function () {
-			this.chromeWebStoreAPI = new ChromeWebStoreAPI(
-				JSON.parse(process.env.CHROME_WEB_STORE_API_CREDENTIAL || ''),
-				JSON.parse(process.env.CHROME_WEB_STORE_API_ACCESS_TOKEN_RESPONSE || ''),
-			);
-		});
+	before(async function () {
+		this.chromeWebStoreAPI = new ChromeWebStoreAPI(
+			JSON.parse(process.env.CHROME_WEB_STORE_API_CREDENTIAL || ''),
+			JSON.parse(process.env.CHROME_WEB_STORE_API_ACCESS_TOKEN_RESPONSE || ''),
+		);
+	});
 
-		it('it should return a item', async function() {
+  describe('Item', () => {
+		it('should return Item Resource', async function() {
 			const chromeWebStoreAPI = this.chromeWebStoreAPI as ChromeWebStoreAPI;
 			const itemId = 'pgpnkghddnfoopjapnlklllpjknnibkn';
-			const item = await chromeWebStoreAPI.Item.fetch(itemId);
+			const item = await (new chromeWebStoreAPI.Item(itemId)).fetch();
 			expect(item).to.have.property('id', itemId);
 		});
 	});
+
+	describe.skip('InAppProduct', () => {
+    it('should return InAppProduct Resource', async function() {
+			const chromeWebStoreAPI = this.chromeWebStoreAPI as ChromeWebStoreAPI;
+      const itemId = 'pgpnkghddnfoopjapnlklllpjknnibkn';
+      const item = new chromeWebStoreAPI.Item(itemId);
+      const sku = '';
+      const inAppProduct = await (new item.InAppProduct(sku)).fetch();
+      expect(inAppProduct).to.have.property('item', item);
+      expect(inAppProduct).to.have.property('sku', sku);
+    });
+  });
 });
