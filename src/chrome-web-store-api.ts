@@ -4,16 +4,16 @@ import stream from 'stream';
 import { URL } from 'url';
 import util from 'util';
 import ChromeWebStore from './chrome-web-store';
-import Item from './item';
 import InAppProduct from './in-app-product';
 import License from './license';
 
 const debug = util.debuglog('chrome-web-store-api');
 const agent = undefined;
 
-function createRequest(url: string | URL, options: RequestOptions): ClientRequest {
-  url = new URL(url.toString());
-  return require(url.protocol.replace(/:$/, '')).request(url, Object.assign({ agent }, options));
+async function createRequest(url: string | URL, options: RequestOptions): Promise<ClientRequest> {
+  const module = (new URL(url.toString())).protocol.replace(/:$/, '');
+  const { request } = await (module === 'https' ? import('https') : import('http'));
+  return request(url, Object.assign({ agent }, options));
 }
 
 function fetch(request: ClientRequest): Promise<IncomingMessage> {
@@ -120,6 +120,7 @@ export interface ItemLike {
   uploadState?: string;
   crxVersion?: string;
   itemError?: ItemError[];
+  refreshToken(): Promise<AccessTokenResponse>;
 }
 
 export interface ItemError {
@@ -147,9 +148,9 @@ export interface LicenseLike {
  * 
  * @param this ChromeWebStore
  */
-async function refreshToken(this: ChromeWebStore): Promise<AccessTokenResponse> {
+export async function refreshToken(this: ChromeWebStore): Promise<AccessTokenResponse> {
   const url = new URL(this.credential.installed.token_uri);
-  const request = createRequest(url, {
+  const request = await createRequest(url, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
@@ -175,11 +176,11 @@ async function refreshToken(this: ChromeWebStore): Promise<AccessTokenResponse> 
  * @param projection Determines which subset of the item information to return.
  * @see https://developer.chrome.com/webstore/webstore_api/items/get
  */
-export async function fetchItem(this: Item, projection: 'DRAFT' | 'PUBLISHED' = 'DRAFT'): Promise<ItemLike> {
-  const { access_token: token } = await refreshToken.call(this.chromeWebStore);
+export async function fetchItem(this: ItemLike, projection: 'DRAFT' | 'PUBLISHED' = 'DRAFT'): Promise<ItemLike> {
+  const { access_token: token } = await this.refreshToken();
   const url = new URL(this.id, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
   url.searchParams.set('projection', projection);
-  const request = createRequest(url, {
+  const request = await createRequest(url, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'x-goog-api-version': 2,
@@ -202,13 +203,13 @@ export async function fetchItem(this: Item, projection: 'DRAFT' | 'PUBLISHED' = 
  * @param publisherEmail The email of the publisher who owns the items.
  * @see https://developer.chrome.com/webstore/webstore_api/items/insert
  */
-export async function insertItem(this: Item, uploadType: UploadType = 'media', publisherEmail?: string): Promise<ItemLike> {
-  const { access_token: token } = await refreshToken.call(this.chromeWebStore);
+export async function insertItem(this: ItemLike, uploadType: UploadType = 'media', publisherEmail?: string): Promise<ItemLike> {
+  const { access_token: token } = await this.refreshToken();
   const url = new URL('https://www.googleapis.com/upload/chromewebstore/v1.1/items');
   url.searchParams.set('uploadType', uploadType);
   if (publisherEmail) url.searchParams.set('publisherEmail', publisherEmail);
 
-  const request = createRequest(url, {
+  const request = await createRequest(url, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Length': 0,
@@ -227,11 +228,11 @@ export async function insertItem(this: Item, uploadType: UploadType = 'media', p
  * @param uploadType The type of upload request to the /upload URI
  * @see https://developer.chrome.com/webstore/webstore_api/items/update
  */
-export async function uploadItem(this: Item, contents: Contents, uploadType: UploadType = ''): Promise<ItemLike> {
-  const { access_token: token } = await refreshToken.call(this.chromeWebStore);
+export async function uploadItem(this: ItemLike, contents: Contents, uploadType: UploadType = ''): Promise<ItemLike> {
+  const { access_token: token } = await this.refreshToken();
   const url = new URL(this.id, 'https://www.googleapis.com/upload/chromewebstore/v1.1/items/');
   url.searchParams.set('uploadType', uploadType);
-  const request = createRequest(url, {
+  const request = await createRequest(url, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'x-goog-api-version': 2,
@@ -254,11 +255,11 @@ export async function uploadItem(this: Item, contents: Contents, uploadType: Upl
  * @param publishTarget Provide defined publishTarget in URL: `trustedTesters` or `default`
  * @see https://developer.chrome.com/webstore/webstore_api/items/publish
  */
-export async function publishItem(this: Item, publishTarget: PublishTarget = 'default'): Promise<PublishItemResult> {
-  const { access_token: token } = await refreshToken.call(this.chromeWebStore);
+export async function publishItem(this: ItemLike, publishTarget: PublishTarget = 'default'): Promise<PublishItemResult> {
+  const { access_token: token } = await this.refreshToken();
   const url = new URL(`${this.id}/publish`, 'https://www.googleapis.com/chromewebstore/v1.1/items/');
   url.searchParams.set('publishTarget', publishTarget);
-  const request = createRequest(url, {
+  const request = await createRequest(url, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Length': 0,
@@ -285,7 +286,7 @@ export async function fetchInAppProducts(this: ChromeWebStore, itemId: string, g
   if (gl) url.searchParams.set('gl', gl);
   if (hl) url.searchParams.set('hl', hl);
   if (projection) url.searchParams.set('projection', projection);
-  const request = createRequest(url, {
+  const request = await createRequest(url, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'x-goog-api-version': 2,
@@ -315,7 +316,7 @@ export async function fetchInAppProduct(this: InAppProduct, gl?: string, hl?: st
   if (gl) url.searchParams.set('gl', gl);
   if (hl) url.searchParams.set('hl', hl);
   if (projection) url.searchParams.set('projection', projection);
-  const request = createRequest(url, {
+  const request = await createRequest(url, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'x-goog-api-version': 2,
@@ -335,7 +336,7 @@ export async function fetchInAppProduct(this: InAppProduct, gl?: string, hl?: st
 export async function fetchLicense(this: License): Promise<LicenseLike> {
   const { access_token: token } = await refreshToken.call(this.chromeWebStore);
   const url = new URL(this.id, 'https://www.googleapis.com/chromewebstore/v1.1/licenses/');
-  const request = createRequest(url, {
+  const request = await createRequest(url, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'x-goog-api-version': 2,

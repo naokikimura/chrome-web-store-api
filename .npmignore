@@ -108,6 +108,6 @@ typings/
 .travis.yml
 tsconfig.json
 .eslintignore
-.eslintrc.js
+eslint.config.js
 .circleci/
 reports/

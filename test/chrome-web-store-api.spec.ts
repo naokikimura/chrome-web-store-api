@@ -1,13 +1,13 @@
 import { expect } from 'chai';
-import ChromeWebStore from '../src/chrome-web-store';
-import InAppProduct from '../src/in-app-product';
-import License from '../src/license';
+import ChromeWebStore from '../src/chrome-web-store.js';
+import InAppProduct from '../src/in-app-product.js';
+import License from '../src/license.js';
 
 describe('ChromeWebStoreAPI', () => {
 	before(async function () {
 		this.chromeWebStore = new ChromeWebStore(
-			JSON.parse(process.env.CHROME_WEB_STORE_API_CREDENTIAL || ''),
-			JSON.parse(process.env.CHROME_WEB_STORE_API_ACCESS_TOKEN_RESPONSE || ''),
+			JSON.parse(process.env.CHROME_WEB_STORE_API_CREDENTIAL ?? '{}'),
+			JSON.parse(process.env.CHROME_WEB_STORE_API_ACCESS_TOKEN_RESPONSE ?? '{}'),
 		);
 	});
 

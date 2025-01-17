@@ -1,5 +1,5 @@
-import { LicenseLike, fetchLicense } from './chrome-web-store-api';
-import ChromeWebStore from './chrome-web-store';
+import { LicenseLike, fetchLicense } from './chrome-web-store-api.js';
+import ChromeWebStore from './chrome-web-store.js';
 
 export default class License implements LicenseLike {
   public readonly kind = 'chromewebstore#license';
